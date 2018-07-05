@@ -12,6 +12,7 @@
     "async": "^2.6.1",
     "bitcoincashjs": "^0.1.10",
     "bitcoind-rpc": "^0.7.1",
+    "dotenv": "^6.0.0",
     "iconv-lite": "^0.4.23",
     "mongodb": "^3.0.10",
     "zeromq": "^4.6.0"

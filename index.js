@@ -1,3 +1,4 @@
+require('dotenv').config()
 var bit = require('./bit')
 var db = require('./db')
 db.init({
@@ -9,8 +10,12 @@ db.init({
       protocol: 'http',
       user: 'root',
       pass: 'bitcoin',
-      host: '127.0.0.1',
+      host: process.env.BITCOIN_IP ? process.env.BITCOIN_IP : '127.0.0.1',
       port: '8332',
+    },
+    zmq: {
+      host: process.env.BITCOIN_IP ? process.env.BITCOIN_IP : '127.0.0.1',
+      port: '28332',
     },
     on: {
       mempool: function(opReturns) {

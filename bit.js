@@ -3,7 +3,7 @@ const RpcClient = require('bitcoind-rpc');
 const zmq = require('zeromq');
 const async = require('async');
 const Bit = {
-  threshold: 20,
+  threshold: 5,
   GENESIS: 525470,  // OP_RETURN GENESIS
   config: {},
   init: function(config, callback) {
@@ -18,6 +18,9 @@ const Bit = {
       if (config.rpc) {
         Bit.config.rpc = config.rpc;
       }
+      if (config.zmq) {
+        Bit.config.zmq = config.zmq;
+      }
       Bit.rpc = new RpcClient(config.rpc);
     }
     callback()
@@ -29,19 +32,26 @@ const Bit = {
    * 2. new hashbblock: sync() to synchronize to the latest block
    */
   listen: function() {
-
     var sock = zmq.socket('sub');
-    sock.connect('tcp://127.0.0.1:28332');
+    sock.connect('tcp://' + Bit.config.zmq.host + ':' + Bit.config.zmq.port);
     sock.subscribe('hashtx');
     sock.subscribe('hashblock');
-    console.log('Subscriber connected to port 28332');
+    console.log('Subscriber connected to port ' + Bit.config.zmq.port);
+
+    var unconfirmedQueue = async.queue(function(hash, callback) {
+      Bit.getUnconfirmedItems(hash, function(opReturns) {
+        Bit.handlers.mempool(opReturns)
+        callback()
+      })
+    }, Bit.threshold)
+    unconfirmedQueue.drain = function() {
+      console.log('unconfirmed queue empty');
+    };
 
     sock.on('message', function(topic, message) {
       if (topic.toString() === 'hashtx') {
         let hash = message.toString('hex')
-        Bit.getUnconfirmedItems(hash, function(opReturns) {
-          Bit.handlers.mempool(opReturns)
-        })
+        unconfirmedQueue.push(hash)
       } else if (topic.toString() === 'hashblock') {
         Bit.sync(function() {
           console.log("Block Synchronized");
